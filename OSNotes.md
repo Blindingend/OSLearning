@@ -111,7 +111,14 @@ Modern Operating Systems
 
 
 
-## IPC
+## Inter Process Communication
+
+由于线程是同一个进程产生的，共享着堆和栈，所以共享信息比较方便，但是对于进程来说，由于并不共享堆和栈，所以需要专门的通行方式。常用的有以下几种。
+
+- Pipe
+
+- Socket
+- Shared memory
 
 
 
@@ -132,4 +139,65 @@ Modern Operating Systems
 
 
 ## File System XV6 ~ Ext4
+
+
+
+## FIle System Durability & Crash Recovery
+
+crush consistancy
+
+
+
+![fsck](https://ws1.sinaimg.cn/large/006tNc79gy1g24uxeu0j8j30v70u0aja.jpg)
+
+### Journaling
+
+Using cache is good for perfermance, but how  to deal with the crash?
+
+XV6 logging only ensure safety, and only allow one log transaction per time.
+
+It's like a lock with a log, keep track of the file while maintianing consistancy
+
+## Journaling and ext3
+
+
+
+**Recovery approach**
+
+- Synchronous meta-data update + fsck
+- **Logging**
+- Soft Update:基于文件系统的语义，寻求 system call 之间的关系
+
+Journal = Log
+
+JFS Journaling FS ≠ LFS log-structured file system
+
+LFS 数据存储方式固定， JFS 只是多加了一个 Journal 而已
+
+同时 open 的 transition 只能有一个，一个 transaction 里可能有多个写操作。
+
+Journaled data 代表着 log 区域包含着 meta data 和 data，每次都要写两遍，很浪费。
+
+Copy on write 让后继的 transaction 能够写前面写过但是尚未提交的 block
+
+每个 syscall 会告诉 log 自己大概需要多少 space
+
+先更新 data 再更新 metadata
+
+Ordered Mode（只写一次 data，metadata 写两次）
+
+1. data -> home
+2. Meta -> Journal
+3. Commit -> Jounal
+4. meta -> home
+
+先写 data，再把 metadata 写入 Journal，再单独 commit metadata。
+
+how to solve conflict for overwrite olddata?
+
+when creating new files, it's not a big deal since we can allocate new disk blocks. But when modify old data, it get some risk. 但是可以写到新的 block 再改 inode 里的指针。这样也不会对旧数据产生影响。会对 locality 产生影响，但是不如正确性重要。
+
+It's a trade off.
+
+
 
