@@ -1,4 +1,4 @@
-# OS Notes
+#  rfOS Notes
 
 [TOC]
 
@@ -313,14 +313,48 @@ Ticket lock can guarantees lock is given in order, but still non_scalable
 
 多核 CPU 每个 CPU 有自己的 cache，将多个 CPU cache 上的内容保持同步花费巨大。
 
-
-
 #### Scalable locks
+
+MCS 锁则是每个 CPU 维护一个锁的链表，每次申请的时候看一下自己前面有没有，如果有的话就把自己加到链表尾部，waiting = 1；如果没有的话就直接那所。
+
+释放的时候看看自己是不是最后一个，是的话就直接将 mcs_lock 置 NULL，不是的话就把后一个 waiting 置 0，把锁给后一个。
 
 
 
 ### Read-Write Lock
 
+为了提高读写操作的并发量而设计出来的锁，基本逻辑是保证同时只有一个 Writer 或者是多个 Reader。
+
+Writer 拿锁的时候必须确保没有任何 Reader 和 Writer
+
+Reader  拿锁的时候必须确保没有 Writer, 但是可以有多个 Reader，具体的上限看 CPU 核数。
+
+#### RW lock scalability
+
+Problem:
+
+- Need to wait for message (current #reader)
+- Need to send message (next reader)
+
+Ideal 1 **GOLL**： Reduce time of waiting for massages
+
+![image-20190531144201607](http://ww2.sinaimg.cn/large/006tNc79ly1g3khu69wsqj30dk0ek0ue.jpg)
+
+Waiting domain is split into pieces. Reduce remote messages.
+
+Idea 2 **BR Lock**: Reduce meesage
+
+![image-20190531144417845](http://ww4.sinaimg.cn/large/006tNc79ly1g3khwi53kej30d20cwgma.jpg)
+
+No reader messages if there's no writer
+
 
 
 ## Bugs
+
+
+
+## Data Race & Deadlock
+
+有些变量不需要被 shared 就可以定义为 thread _local 
+
