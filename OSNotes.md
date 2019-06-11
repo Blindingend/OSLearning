@@ -1,4 +1,4 @@
-#  rfOS Notes
+#  OS Notes
 
 [TOC]
 
@@ -412,4 +412,150 @@ var strBA = operationBPrime.apply('hello, world!')  // 'hi, world!'
 ## Data Race & Deadlock
 
 有些变量不需要被 shared 就可以定义为 thread _local 
+
+
+
+
+
+## Virtualization
+
+VMM 有着不同的 Architecture
+
+- Xen: 结构简单 
+- KVM
+- qemu
+
+
+
+### Hardware Supported CPU Virtualization
+
+Ring 1/2 淡出历史舞台
+
+只有 
+
+- Ring0：kernel mode
+
+- Ring3：user mode
+
+
+
+### CPU 虚拟化
+
+##### VMCS (Virtual Machine Control Structure) 
+
+记录 VM 的信息，类似 trap 的 trapframe，记录一组寄存器，不能直接读取寄存器，通过新的指令 vmcs read/write 来操作
+
+
+
+### Memory 虚拟化
+
+
+
+
+
+
+
+## Serverless Computing
+
+什么叫 Serverless?
+
+Serverless 是相对于以前的 Server 相关的
+
+Before：用户向厂商
+
+After：
+
+
+
+Scale out 一台变多台
+
+Scale up 一核变多核
+
+
+
+Advantages
+
+- Event-driven: stateless 
+
+- Auto-scale
+
+- Easier dev-ops
+
+- Fine-grained billing
+
+
+
+Serverless 和 Microservice 的区别，Serverless 自动 scale，短时，免维护
+
+
+
+初始化很慢，可以把刚初始化完的保存成一个 snapshot，然后加载这个 snapshot，减少时间
+
+Android Zygote 机制，启动之后会初始化一个 JVM，然后每个应用启动的时候都 fork 这个 JVM。
+
+
+
+## OS Review
+
+
+
+### 8 Important Problems
+
+1. Scale Up:
+
+​	Spin Lock -> MCS Lock
+
+2. Scale Out:
+
+​	Serverless, 和 Scale Up 相同的地方：共享的东西越少越好，不同的地方，Scale Up 是在 Cycle 这个级别，不会太多，但是 Scale Out 是毫秒级，扩展量级不一样，可能会很多。Stateless 对 Scale Out 很重要。
+
+​	步骤，拆分成 microservice，然后让每个 microservice 尽量的 stateless. 
+
+3. Virtualization & Mobility 
+
+   手机的虚拟化需要考虑更多的硬件
+
+
+
+### Kernels
+
+kernels
+
+micro kernel
+
+exokernel
+
+如何结合 exokernel 和 hypervisor，用 SRIOV 虚拟出硬件提供给 exokernel 上面的 libOS 来调度
+
+ LRPC:一个线程下来多个 Address Space， caller 切换到 calle 只需要改 CR3 和 IP，性能好
+
+![image-20190611112138316](http://ww2.sinaimg.cn/large/006tNc79gy1g3x1v26y5bj310m0twju5.jpg)
+
+虚拟内存：洞(640KB-1MB, 无法访问 被浪费)
+
+32：10 10 12
+
+**解释why2M? **36bit
+
+#### 两个细节
+
+1. P2V V2P不能用在用户态，用户态有自己的页表（用户 和 内核 2个虚拟地址对应一个PA）
+
+2. kernel不能拿用户态指针V2P
+
+switch：换esp，switch 和 trap 和 trap frame 之间的关系？
+
+
+
+#### 中断：
+
+Top half, bottom half 的区别
+
+
+
+### FS
+
+
+
+
 
