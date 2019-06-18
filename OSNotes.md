@@ -2,7 +2,7 @@
 
 [TOC]
 
-## Introduction& 8 Important Problems in
+## 1. Introduction& 8 Important Problems in
 Modern Operating Systems
 
 ### What's the definition operating system?
@@ -95,46 +95,161 @@ Modern Operating Systems
 
 - **Virtualization**
 
-##OS Structures
+##2. OS Structures
+
+Kernel 分类：Monolithic, Microkernel, Exokernel, Hybrid
+
+- Monolithic 宏内核：OS在kernel space运行，在supervisor mode 运行 （Linux BSD)
+- Microkernel 微内核：low-level address space management, thread management, and inter-process communication (IPC)等技术，（Mach  L4 kernel）
+- Hybrid kernel 复合内核：Windows ，NT kernel
+
+![1554882220939](http://ww1.sinaimg.cn/large/006tNc79ly1g3zkb0hds7j30ux07wdhi.jpg)
 
 
 
-##PC Programming & Booting
+
+
+##3. PC Programming & Booting
+
+PC 有不同的工作模式，不同的工作模式对应着不同的情况，不同的权限与需求，与不同的寻址模式。
+
+- 定义：Real Mode, Protected Mode, Virtual-8086 Mode, IA-32e Mode, System Management Mode
+- 名词解释：
+  - PE，Protection Mode的开关
+  - SMI，System Management Interrupt，系统管理中断，使系统进入SMM的特殊中断
+  - SCI，System Control Interrupt，系统控制中断，专门用于ACPI电源管理的一个IRQ，需要OS支持
+- Real-Address Mode是在bootloader阶段的运行模式，存在时间很短。内存寻址方式和8086相同，没有虚拟地址，由16位段寄存器（CS/SS/DS/ES）乘以0x10当做基地址，再加上16位偏移地址形成20位的物理地址，最大寻址空间1MB，最大分段64KB。
+- Protected Mode是最常用的模式，内存寻址采用32位段和偏移量（现在64位），最大寻址4GB，最大分段4GB。它提供了一些增强多工和系统稳定性的设计，比如内存保护，分页系统，虚拟内存等，防止程序随意访问地址，也拥有更大的内存访问空间。
+- Virtual-8086 Mode是在保护模式下运行的虚拟实模式环境，寻址方式与实模式相同。
+- IA-32e Mode是64位操作系统运行的模式，具有兼容模式和64位模式两种子模式。兼容模式可以运行在32位兼容环境，但不能运行虚拟8086程序；64位模式则完全处理64位指令
+- System Management Mode有独立于OS的地址空间，用来执行电源管理或系统安全方面的指令。
+
+Protected Mode
+
+Real Mode
+
+![img](https://images2015.cnblogs.com/blog/809277/201601/809277-20160109142207371-383459687.png)
+
+Logical Address : 程序运行时的逻辑地址
+
+Linear Address(Virtual Address): 由 Logical Address 翻译过来。如果没有分页机制的话就直接是物理地址了，如果有分页机制的话就是虚拟地址，还需要经过 Page Translation 变成物理地址。
+
+**Logical Address to Linear Address**
+
+Logical Address(segment:offset) = 0x01:0x0000ffff
+
+根据 segment 去相应的 DT 中查到对应的索引，然后看 table entry 中的 Flag 确认自己是否有访问权限。如果有访问权限的话取出 Base, 与 offset 进行运算之后得到 Linear Address。
+
+而所查询的表有两种 , **GDT**(Global Discription Table) **LDT** (Local Discription Table), 作用都是存放某个运行在内存中的程序的分段信息。 GDT 全局可见，内核程序的短信息存储与此。 LDT 则是每个在内存中的程序都包含的。
 
 
 
-##XV6 & VM
+
+
+##4. XV6 & VM
 
 
 
-##Processes
+
+
+##5. Processes
+
+- 逻辑地址 - 线性地址 - 物理地址的转换
+
+  ![1556339216237](http://ww4.sinaimg.cn/large/006tNc79ly1g3zkaxmhl5j30mp05fdgh.jpg)
+
+  ![1556339247367](http://ww3.sinaimg.cn/large/006tNc79ly1g3zke5spzjj30nq0eeabl.jpg)
+
+- Boot阶段的主要工作：
+
+  - 进入Protected Mode，开启Segment，配置GDT (ljmp指令)
+  - 打开页表 (CR0_PG)，初始化entrypgdir，将kernel映射到高地址和低地址 (0x80100000, 0x100000)
+
+- 一些概念
+
+  - Process：设计进程的出发点：程序比处理器多；程序并不需要持续占用处理器；因此可以在不用的时候释放资源；进程是资源分配的最小单位，拥有一个地址空间和若干线程；包含program counter, stack, data section等数据块
+
+  - Thread：线程的抽象定义：停止活动并在稍后某个 时刻恢复活动所需要的最小状态，通常是一些程序寄存器；线程是程序运行的最小单位
+
+  - Context：xv6中的数据结构，包含edi、esi、ebx、ebp、eip五个field
+
+  - Address spaces：地址空间，原则上和线程是独立的概念；可以在同一个地址空间从一个线程切换到另一个线程；也可以在不同地址空间切换
+
+  - Process State：进程状态，一般有new，running，waiting，ready，terminated；xv6中为UNUSED, EMBRYO胚胎, SLEEPING, RUNNABLE, RUNNING, ZOMBIE
+
+    - ENBRYO可以理解为到RUNNABLE之前的一个过渡。allocproc会在进程表中找到一个标记为UNUSED的位置。当它找到这样一个没有被使用的位置后，allocproc将其状态设置为EMBRYO，使其标记为被使用并给这个进程一个独有的pid。接下来，它尝试为进程的内核线程分配内核栈。如果分配失败了，allocproc会把这个位置的状态恢复为UNUSED并返回0来标记失败。
+
+    ![1556342655313](http://ww4.sinaimg.cn/large/006tNc79ly1g3zkdw22y3j30kb08e0ti.jpg)
+
+- Process Control Block，PCB
+
+  - 每个process都会有一个PCB，内容包括Process state, Process counter, CPU registers, CPU scheduling information, Memory management information, Accounting information, I/O status information
+  - xv6 中的进程数据结构
+
+  ![1556343005224](http://ww1.sinaimg.cn/large/006tNc79ly1g3zkb1zd4wj30mr0anwgk.jpg)
+
+- Context Switch 上下文切换
+
+  - 调用syscall触发中断 - save当前进程的PCB - reload目标进程的PCB - 继续执行
+  - 上下文切换需要保存的内容应该是存在进程对应的kernel stack中的
+  - 上下文切换换栈的瞬间
+
+  ![1556343241697](http://ww1.sinaimg.cn/large/006tNc79ly1g3zkb5l8zcj309t08ijrt.jpg)
+
+- Process Scheduling Queue 进程调度队列
+
+  - Job Queue：系统中所有的process
+  - Ready Queue：系统中所有等待执行的process
+  - Device Queue：系统中所有等待IO设备的process
+
+- 两种Scheduler
+
+  - Long-term scheduler / job scheduler：调度即将进入ready queue的进程，完成时间在秒/分钟级别，决定了multiprogramming的程度
+  - Short-term scheduler / CPU scheduler：调度即将执行的进程，完成时间在微秒级别
+  - scheduler对process的分类：IO-bound process和CPU-bound process
+
+- Process的创建：fork，一次执行两次返回；execute，一次执行没有返回；奇妙的机制
+
+  ![1556344453826](http://ww3.sinaimg.cn/large/006tNc79ly1g3zkdwziswj30it057mxd.jpg)
 
 
 
-## Inter Process Communication
 
-由于线程是同一个进程产生的，共享着堆和栈，所以共享信息比较方便，但是对于进程来说，由于并不共享堆和栈，所以需要专门的通行方式。常用的有以下几种。
+
+## 6. Inter Process Communication
+
+### IPC
+
+由于线程是同一个进程产生的，共享着堆和栈，所以共享信息比较方便，但是对于进程来说，由于并不共享堆和栈，所以需要专门的通信方式。常用的有两种方式。
+
+- <big>**Message Passing**</big>
+
+  
+
+- <big>**Shared Memory**</big>
 
 - Pipe
 
 - Socket
 - Shared memory
 
-
-
-## Exception
-
-
-
-## Interrupt
+### LRPC - Lightweighting Remote Procedure Call
 
 
 
-## System Calls
+## 7. Exception
 
 
 
-## I/O
+## 8. Interrupt
+
+
+
+## 9. System Calls
+
+
+
+## 10. I/O
 
 
 
@@ -142,11 +257,11 @@ Modern Operating Systems
 
 
 
-### File System XV6 ~ Ext4
+### 11. File System XV6 ~ Ext4
 
 
 
-### FIle System Durability & Crash Recovery
+### 12. FIle System Durability & Crash Recovery
 
 crush consistancy
 
@@ -162,7 +277,7 @@ XV6 logging only ensure safety, and only allow one log transaction per time.
 
 It's like a lock with a log, keep track of the file while maintianing consistancy
 
-### Journaling and ext3
+### 13. Journaling and ext3
 
 
 
@@ -213,11 +328,11 @@ All or nothing 的根源是磁盘写 4k 能够保证一次写入 All or nothing
 
 
 
-### Virtual Disk & VMRAM
+#### Virtual Disk & VMRAM
 
 
 
-### FS:  FAT32 & NTFS
+### 14. FS:  FAT32 & NTFS
 
 #### FAT32
 
@@ -247,11 +362,11 @@ summary blcok 是用来记录反向映射，类似于 NTFS 的 MFT 里的 Entry 
 
 
 
-### Flash
+### 15. Flash FS
 
 
 
-### GFS & NFS
+### 16. GFS & NFS
 
 GFS 是谷歌针对自己应用的需求设计的文件系统
 
@@ -299,7 +414,7 @@ Chunk size: 64 MB
 
 ## Lock
 
-### Scalable Lock
+### 17. Scalable Lock
 
 #### Non-scalable locks
 
@@ -405,7 +520,7 @@ var strBA = operationBPrime.apply('hello, world!')  // 'hi, world!'
 
 
 
-## Bugs
+## Bug Survey
 
 
 
@@ -417,7 +532,9 @@ var strBA = operationBPrime.apply('hello, world!')  // 'hi, world!'
 
 
 
-## Virtualization
+## Virtualization:
+
+### 22. CPU & Memory
 
 VMM 有着不同的 Architecture
 
@@ -427,7 +544,7 @@ VMM 有着不同的 Architecture
 
 
 
-### Hardware Supported CPU Virtualization
+#### Hardware Supported CPU Virtualization
 
 Ring 1/2 淡出历史舞台
 
@@ -439,7 +556,7 @@ Ring 1/2 淡出历史舞台
 
 
 
-### CPU 虚拟化
+#### CPU 虚拟化
 
 ##### VMCS (Virtual Machine Control Structure) 
 
@@ -447,15 +564,15 @@ Ring 1/2 淡出历史舞台
 
 
 
-### Memory 虚拟化
+#### Memory 虚拟化
 
 
 
+### 23. I/O
 
 
 
-
-## Serverless Computing
+## 24. Serverless Computing
 
 什么叫 Serverless?
 
